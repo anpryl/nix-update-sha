@@ -8,7 +8,7 @@ l="$(mktemp)"
 trap "rm ${l}" EXIT
 
 echo "packageFile="$packageFile
-vendorSha256=$(grep vendorSha256 "$packageFile" | cut -f2 -d'"')
+vendorSha256=$(grep "vendorSha256 =" "$packageFile" | cut -f2 -d'"')
 echo "venhorSha256="$vendorSha256
 sed -i "s|${vendorSha256}|0000000000000000000000000000000000000000000000000000|" "$packageFile"
 nix build ".#${buildAttr}" --no-link &>"${l}" || true
