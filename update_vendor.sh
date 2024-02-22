@@ -8,21 +8,20 @@ l="$(mktemp)"
 trap "rm ${l}" EXIT
 
 echo "packageFile="$packageFile
-vendorSha256=$(grep "vendorSha256 =" "$packageFile" | cut -f2 -d'"')
-echo "venhorSha256="$vendorSha256
-sed -i "s|${vendorSha256}|0000000000000000000000000000000000000000000000000000|" "$packageFile"
+vendorHash=$(grep "vendorHash =" "$packageFile" | cut -f2 -d'"')
+echo "vendorSha256="$vendorHash
+sed -i "s|${vendorHash}|sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=|" "$packageFile"
 nix build ".#${buildAttr}" --no-link &>"${l}" || true
 cat ${l}
-newvendorSha256="$(cat "${l}" | grep 'got:' | cut -d':' -f2 | tr -d ' ' || true)"
-echo $newvendorSha256
-[ ! -z "$newvendorSha256" ] || exit 0
-if [[ "${newvendorSha256}" == "sha256" ]]; then newvendorSha256="$(cat "${l}" | grep 'got:' | cut -d':' -f3 | tr -d ' ' || true)"; fi
-newvendorSha256="$(nix hash to-base32 --type sha256 "${newvendorSha256}")"
-sed -i "s|0000000000000000000000000000000000000000000000000000|${newvendorSha256}|" "$packageFile"
+newvendorHash="$(cat "${l}" | grep 'got:' | cut -d':' -f2 | tr -d ' ' || true)"
+echo $newvendorHash
+[ ! -z "$newvendorHash" ] || exit 0
+if [[ "${newvendorHash}" == "sha256" ]]; then newvendorHash="$(cat "${l}" | grep 'got:' | cut -d':' -f3 | tr -d ' ' || true)"; fi
+sed -i "s|sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=|${newvendorHash}|" "$packageFile"
 
 git diff-index --quiet HEAD "${pkg}" ||
-	git commit "$packageFile" -m "[CI SKIP] Update vendorSha256 in ${packageFile}: ${vendorSha256} => ${newvendorSha256}"
-echo "done updating ${packageFile} (${vendorSha256} => ${newvendorSha256})"
+	git commit "$packageFile" -m "[CI SKIP] Update vendorHash in ${packageFile}: ${vendorHash} => ${newvendorHash}"
+echo "done updating ${packageFile} (${vendorHash} => ${newvendorHash})"
 if [ "$PUSH" = true ]; then
 	git push origin $(git branch --show-current $BRANCH_NAME) || echo "Failed to push to origin. Not on the top of the stream?"
 fi
